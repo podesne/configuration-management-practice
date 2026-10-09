@@ -145,3 +145,8 @@ exit now
 У `execute_command` параметр `write` задаёт функцию вывода, по умолчанию
 это `print`. Параметр `quoted` у `expand_text` включает правила двойных
 кавычек. Описание аргументов и результатов есть в документации функций.
+
+## Материалы
+
+- [Задание и учебные материалы курса](https://github.com/true-grue/kisscm).
+- [Пример эмулятора оболочки](https://github.com/true-grue/kisscm/blob/main/md/cli_emu.md).
