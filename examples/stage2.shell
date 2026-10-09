@@ -1,0 +1,14 @@
+# Проверка заглушек и разбора ввода
+ls
+ls -a "my folder"
+cd $HOME
+ls ${HOME}/docs
+ls '$HOME' "$HOME" ""
+ls \$HOME
+ls "# внутри кавычек" \# # комментарий Python
+unknown
+ls "folder
+exit now
+ls
+exit
+ls эта-строка-не-выполняется
