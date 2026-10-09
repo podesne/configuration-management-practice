@@ -6,6 +6,7 @@ import sys
 from collections.abc import Callable
 
 from src.parser import parse_command
+from src.startup import strip_comment
 
 
 STUB_COMMANDS = frozenset({"ls", "cd"})
@@ -42,9 +43,18 @@ def execute_command(words: list[str], write: Callable = print) -> bool:
     return True
 
 
-def run_repl() -> None:
+def process_line(line: str) -> bool:
+    """Разобрать строку, вывести ошибку и вернуть признак продолжения."""
+    try:
+        return execute_command(parse_command(strip_comment(line)))
+    except ValueError as error:
+        print(f"Ошибка: {error}", file=sys.stderr, flush=True)
+        return True
+
+
+def run_repl(prompt: str | None = None) -> None:
     """Читать команды до exit или конца ввода; после ошибки продолжать."""
-    prompt = build_prompt()
+    prompt = build_prompt() if prompt is None else prompt
     while True:
         try:
             line = input(prompt)
@@ -54,8 +64,5 @@ def run_repl() -> None:
         except KeyboardInterrupt:
             print()
             continue
-        try:
-            if not execute_command(parse_command(line)):
-                return
-        except ValueError as error:
-            print(f"Ошибка: {error}", file=sys.stderr)
+        if not process_line(line):
+            return
