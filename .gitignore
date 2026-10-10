@@ -18,3 +18,7 @@ Thumbs.db
 *.7z
 *.rar
 .env
+
+# Образы создаются скриптом
+examples/generated/
+*.zip
