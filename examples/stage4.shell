@@ -1,0 +1,56 @@
+# Список, абсолютные и относительные пути
+ls
+ls -a
+ls docs
+ls /notes.txt
+cd docs/level2/level3
+ls
+head readme.txt
+cd ..
+cd -
+cd
+cd .
+cd /missing
+cd /notes.txt
+cd one two
+ls /missing
+ls -z
+# Все режимы head и tail
+head /notes.txt
+head -n 2 /notes.txt
+tail /notes.txt
+tail -n 2 /notes.txt
+head -n 0 /notes.txt
+tail -n 0 /notes.txt
+head /empty.txt
+tail /no-newline.txt
+head /data.bin
+tail -n -1 /notes.txt
+head -n x /notes.txt
+head /missing
+tail /docs
+head
+# Все режимы uniq
+uniq /notes.txt
+uniq -c /notes.txt
+uniq -d /notes.txt
+uniq -u /notes.txt
+uniq -i /case.txt
+uniq -c -d -i /case.txt
+uniq /empty.txt
+uniq /no-newline.txt
+uniq -d -u /notes.txt
+uniq /data.bin
+uniq /missing
+# Разбор переменных, кавычек и комментариев
+ls '$HOME'
+ls "$HOME"
+ls \$HOME
+ls "#" # комментарий
+ls "broken
+vfs-info
+vfs-info extra
+unknown
+exit now
+ls
+exit
