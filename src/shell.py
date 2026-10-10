@@ -7,6 +7,7 @@ from collections.abc import Callable
 
 from src.parser import parse_command
 from src.startup import strip_comment
+from src.vfs import VirtualFS
 
 
 STUB_COMMANDS = frozenset({"ls", "cd"})
@@ -17,7 +18,10 @@ def build_prompt() -> str:
     return f"{getpass.getuser()}@{socket.gethostname()}:~$ "
 
 
-def execute_command(words: list[str], write: Callable = print) -> bool:
+def execute_command(
+    words: list[str], write: Callable = print,
+    filesystem: VirtualFS | None = None
+) -> bool:
     """Выполнить команду и вернуть, нужно ли продолжать диалог.
 
     Args:
@@ -37,22 +41,31 @@ def execute_command(words: list[str], write: Callable = print) -> bool:
         if arguments:
             raise ValueError("Команда exit не принимает аргументы")
         return False
+    if command == "vfs-info":
+        if arguments:
+            raise ValueError("Команда vfs-info не принимает аргументы")
+        write((filesystem or VirtualFS()).describe())
+        return True
     if command not in STUB_COMMANDS:
         raise ValueError(f"Неизвестная команда: {command}")
     write(f"{command}: {arguments!r}")
     return True
 
 
-def process_line(line: str) -> bool:
+def process_line(line: str, filesystem: VirtualFS | None = None) -> bool:
     """Разобрать строку, вывести ошибку и вернуть признак продолжения."""
     try:
-        return execute_command(parse_command(strip_comment(line)))
+        return execute_command(
+            parse_command(strip_comment(line)), filesystem=filesystem
+        )
     except ValueError as error:
         print(f"Ошибка: {error}", file=sys.stderr, flush=True)
         return True
 
 
-def run_repl(prompt: str | None = None) -> None:
+def run_repl(
+    prompt: str | None = None, filesystem: VirtualFS | None = None
+) -> None:
     """Читать команды до exit или конца ввода; после ошибки продолжать."""
     prompt = build_prompt() if prompt is None else prompt
     while True:
@@ -64,5 +77,5 @@ def run_repl(prompt: str | None = None) -> None:
         except KeyboardInterrupt:
             print()
             continue
-        if not process_line(line):
+        if not process_line(line, filesystem):
             return
