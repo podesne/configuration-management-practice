@@ -1,0 +1,5 @@
+{
+  "directories": ["empty"],
+  "files": {"notes.txt": "alpha\nalpha\nbeta\nalpha\n", ".hidden": "hidden\n", "no-newline.txt": "last"},
+  "binary": {"data.bin": "AP+A"}
+}

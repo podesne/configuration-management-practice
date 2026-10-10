@@ -1,0 +1,14 @@
+# Проверка загруженного образа и команд предыдущих этапов
+vfs-info
+ls
+ls -a "my folder"
+cd $HOME
+ls '$HOME' "$HOME" ""
+ls \$HOME ${HOME}/docs
+ls "#" \# # комментарий
+vfs-info extra
+unknown
+ls "broken
+exit now
+vfs-info
+exit

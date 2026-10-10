@@ -1,0 +1,13 @@
+{
+  "directories": ["empty", "docs/level2/level3", "destination"],
+  "files": {
+    "notes.txt": "alpha\nalpha\nbeta\nalpha\n",
+    ".hidden": "hidden\n",
+    "docs/level2/level3/readme.txt": "first\nsecond\nthird\n",
+    "docs/space name.txt": "space\n",
+    "empty.txt": "",
+    "no-newline.txt": "last",
+    "case.txt": "Alpha\nalpha\nBETA\n"
+  },
+  "binary": {"data.bin": "AP+A"}
+}
