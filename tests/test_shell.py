@@ -1,91 +1,75 @@
-"""Проверки команд, приглашения и продолжения диалога после ошибок."""
+"""Проверки приглашения, сеанса и продолжения работы после ошибок."""
 
 import getpass
 import io
+import os
 import socket
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
-from src.shell import build_prompt, execute_command, run_repl
+from src.shell import Shell, build_prompt, run_repl
+from src.vfs import VirtualFS
 
 
 class ShellTests(unittest.TestCase):
-    """Проверить поведение консольного прототипа."""
+    """Проверить приглашение и команды одного сеанса."""
 
-    def test_prompt_uses_os_data(self):
-        """Приглашение совпадает с данными пользователя и компьютера ОС."""
-        expected = f"{getpass.getuser()}@{socket.gethostname()}:~$ "
+    def setUp(self):
+        """Создать VFS и перехватить вывод команд."""
+        self.fs = VirtualFS()
+        self.fs.add('docs', True, b'')
+        self.fs.add('notes.txt', False, b'alpha\nalpha\nbeta\nalpha\n')
+        self.output = io.StringIO()
+        self.shell = Shell(self.fs, write=self.output.write)
+
+    def test_prompt(self):
+        """Данные ОС и текущий путь видны в приглашении."""
+        expected = f'{getpass.getuser()}@{socket.gethostname()}:~$ '
         self.assertEqual(build_prompt(), expected)
+        self.shell.execute(['cd', '/docs'])
+        self.assertIn(':~/docs$ ', self.shell.prompt())
+        custom = Shell(self.fs, '')
+        custom.execute(['cd', '/docs'])
+        self.assertEqual(custom.prompt(), '')
 
-    def test_stubs_print_name_and_arguments(self):
-        """Обе заглушки печатают все аргументы, в том числе пустой."""
-        for command in ("ls", "cd"):
-            with self.subTest(command=command):
-                write = Mock()
-                self.assertTrue(execute_command([command, "a b", ""], write))
-                write.assert_called_once_with(f"{command}: ['a b', '']")
+    def test_cd(self):
+        """Переходы меняют только состояние VFS."""
+        real = os.getcwd()
+        self.shell.execute(['cd', 'docs'])
+        self.assertEqual(self.shell.cwd, '/docs')
+        self.shell.execute(['cd', '-'])
+        self.assertEqual(self.shell.cwd, '/')
+        self.assertEqual(self.output.getvalue(), '/\n')
+        self.shell.execute(['cd'])
+        for path in ('missing', 'notes.txt'):
+            with self.assertRaises(ValueError):
+                self.shell.execute(['cd', path])
+            self.assertEqual(self.shell.cwd, '/')
+        self.assertEqual(os.getcwd(), real)
 
-    def test_stubs_without_arguments(self):
-        """Заглушки работают и без аргументов."""
-        for command in ("ls", "cd"):
-            write = Mock()
-            self.assertTrue(execute_command([command], write))
-            write.assert_called_once_with(f"{command}: []")
+    def test_exit_and_empty(self):
+        """Пустая строка продолжает сеанс, exit разрешён без аргументов."""
+        self.assertTrue(self.shell.execute([]))
+        self.assertFalse(self.shell.execute(['exit']))
+        for words in (['exit', 'now'], ['exit', ''], ['unknown']):
+            with self.assertRaises(ValueError):
+                self.shell.execute(words)
 
-    def test_cd_keeps_real_directory(self):
-        """Заглушка cd не меняет рабочую папку реального процесса."""
-        import os
-
-        directory = os.getcwd()
-        execute_command(["cd", "/"], Mock())
-        self.assertEqual(os.getcwd(), directory)
-
-    def test_exit(self):
-        """Exit завершает диалог без вывода заглушки."""
-        write = Mock()
-        self.assertFalse(execute_command(["exit"], write))
-        write.assert_not_called()
-
-    def test_exit_rejects_arguments(self):
-        """Exit с аргументами выдаёт понятную ошибку."""
-        with self.assertRaisesRegex(ValueError, "не принимает аргументы"):
-            execute_command(["exit", "now"])
-
-    def test_unknown_command(self):
-        """Неизвестная команда не передаётся настоящей оболочке."""
-        with self.assertRaisesRegex(ValueError, "Неизвестная команда"):
-            execute_command(["rm", "-rf", "/"])
-
-    def test_empty_command(self):
-        """Пустая команда не печатает ничего и сохраняет диалог."""
-        write = Mock()
-        self.assertTrue(execute_command([], write))
-        write.assert_not_called()
-
-    def test_repl_recovers_from_errors(self):
-        """После разных ошибок можно выполнить команду и выйти."""
-        lines = ["", "unknown", 'ls "broken', "exit now", "ls", "exit"]
-        output, errors = io.StringIO(), io.StringIO()
-        with patch("builtins.input", side_effect=lines) as read:
-            with redirect_stdout(output), redirect_stderr(errors):
-                run_repl()
+    def test_recovery(self):
+        """Ошибки не мешают последующим командам и выходу."""
+        lines = ['', 'unknown', 'ls "broken', 'exit now', 'ls', 'exit']
+        errors = io.StringIO()
+        with patch('builtins.input', side_effect=lines) as read:
+            with redirect_stderr(errors):
+                run_repl(self.shell)
         self.assertEqual(read.call_count, len(lines))
-        self.assertEqual(output.getvalue(), "ls: []\n")
-        self.assertEqual(errors.getvalue().count("Ошибка:"), 3)
+        self.assertEqual(errors.getvalue().count('Ошибка:'), 3)
+        self.assertEqual(self.output.getvalue(), 'docs\nnotes.txt\n')
 
-    def test_end_of_input(self):
-        """Конец ввода завершает программу без ошибки."""
-        with patch("builtins.input", side_effect=EOFError):
-            with redirect_stdout(io.StringIO()):
-                run_repl()
-
-    def test_keyboard_interrupt(self):
-        """Ctrl+C возвращает приглашение, после чего доступен exit."""
-        with patch("builtins.input", side_effect=[KeyboardInterrupt, "exit"]):
-            with redirect_stdout(io.StringIO()):
-                run_repl()
-
-
-if __name__ == "__main__":
-    unittest.main()
+    def test_terminal_signals(self):
+        """Конец ввода завершает программу, Ctrl+C возвращает ввод."""
+        for lines in ([EOFError], [KeyboardInterrupt, 'exit']):
+            with patch('builtins.input', side_effect=lines):
+                with redirect_stdout(io.StringIO()):
+                    run_repl(self.shell)

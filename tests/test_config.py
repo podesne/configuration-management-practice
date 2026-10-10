@@ -42,7 +42,7 @@ class ConfigTests(unittest.TestCase):
                     self.assertEqual(main(['--prompt', 'x> ',
                                            '--script', str(path)]), 0)
             read.assert_not_called()
-            self.assertIn('x> ls\nls: []\nx> exit', output.getvalue())
+            self.assertIn('x> ls\nx> exit', output.getvalue())
             self.assertNotIn('unknown', output.getvalue())
 
     def test_missing_script(self):
