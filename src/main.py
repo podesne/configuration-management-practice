@@ -4,7 +4,7 @@ import sys
 import zipfile
 
 from src.config import parse_config, print_config
-from src.shell import build_prompt, process_line, run_repl
+from src.shell import Shell, run_repl
 from src.startup import run_script
 from src.vfs import VirtualFS
 
@@ -13,19 +13,18 @@ def main(arguments: list[str] | None = None) -> int:
     """Запустить скрипт и диалог; вернуть код ошибки запуска."""
     config = parse_config(arguments)
     print_config(config)
-    prompt = build_prompt() if config.prompt is None else config.prompt
     try:
         filesystem = VirtualFS.load(config.vfs)
-        execute = lambda line: process_line(line, filesystem)
+        shell = Shell(filesystem, config.prompt)
         if config.script and not run_script(
-            config.script, lambda: prompt, execute
+            config.script, shell.prompt, shell.process
         ):
             return 0
     except (OSError, UnicodeError, ValueError, zipfile.BadZipFile,
             RuntimeError, NotImplementedError) as error:
         print(f"Ошибка запуска: {error}", file=sys.stderr)
         return 1
-    run_repl(prompt, filesystem)
+    run_repl(shell)
     return 0
 
 
