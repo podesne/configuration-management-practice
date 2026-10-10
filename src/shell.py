@@ -6,6 +6,7 @@ import sys
 from collections.abc import Callable
 
 from src.commands import edge_lines, list_files, unique_lines
+from src.copying import copy
 from src.parser import parse_command
 from src.startup import strip_comment
 from src.vfs import VirtualFS
@@ -70,6 +71,9 @@ class Shell:
 
     def command_output(self, command: str, arguments: list[str]) -> str:
         """Вычислить вывод команды чтения VFS."""
+        if command == "cp":
+            copy(self.fs, self.cwd, arguments)
+            return ""
         if command == "ls":
             return list_files(self.fs, self.cwd, arguments)
         if command in ("head", "tail"):
